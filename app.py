@@ -1,13 +1,11 @@
 import os
-import urllib.request
-import json
 from flask import Flask, render_template, request, jsonify
+from duckduckgo_search import DDGS
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # Carrega a interface visual
     return render_template('index.html')
 
 @app.route('/perguntar', methods=['POST'])
@@ -21,19 +19,31 @@ def perguntar():
             
         pergunta_min = pergunta.lower()
         if pergunta_min in ["oi", "olá", "ola", "bom dia", "boa noite"]:
-            return jsonify({"resposta": "Olá! Eu sou a Geometry AI. O que você gostaria de pesquisar hoje?"})
+            return jsonify({"resposta": "Olá! Eu sou a Geometry AI. O que você gostaria de pesquisar na internet hoje?"})
 
-        # --- SISTEMA DE PESQUISA SEGURO (Sem chaves de API) ---
-        # Ele vai pesquisar o termo diretamente na API pública do Wikipedia
+        # --- SISTEMA DE PESQUISA AVANÇADO ---
         try:
-            # Formata a pergunta para o link (ex: "buraco negro" vira "buraco%20negro")
-            termo = pergunta.replace(" ", "%20")
-            url = f"https://pt.wikipedia.org/api/rest_v1/page/summary/{termo}"
+            # Pesquisa a frase inteira no motor de busca e pega o primeiro resultado
+            resultados = DDGS().text(pergunta, region='br-pt', max_results=1)
             
-            # Faz a pesquisa fingindo ser um navegador comum
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            resposta_site = urllib.request.urlopen(req).read()
-            dados_wiki = json.loads(resposta_site)
+            if resultados:
+                resumo = resultados[0]['body']
+                link = resultados[0]['href']
+                
+                resposta_formatada = f"{resumo}\n\n(Fonte: {link})"
+                return jsonify({"resposta": resposta_formatada})
+            else:
+                return jsonify({"resposta": "Não encontrei uma resposta clara para isso na internet."})
+                
+        except Exception as e:
+            return jsonify({"resposta": "Desculpe, o servidor de buscas está muito ocupado no momento. Tente novamente."})
+            
+    except Exception as e:
+        return jsonify({"resposta": "Ops, tive um problema técnico interno."})
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
             
             # Se achou o resumo, ele responde
             if "extract" in dados_wiki:
