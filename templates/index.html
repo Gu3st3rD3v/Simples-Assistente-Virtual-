@@ -60,3 +60,29 @@
     </script>
 </body>
 </html>
+            if (!texto) return;
+
+            addMsg(texto, 'user');
+            input.value = '';
+            const loading = addMsg("Pesquisando...", 'bot');
+
+            const res = await fetch('/perguntar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({pergunta: texto})
+            });
+            const data = await res.json();
+            loading.innerText = data.resposta;
+        }
+
+        function addMsg(txt, tipo) {
+            const div = document.createElement('div');
+            div.className = 'message ' + tipo;
+            div.innerText = txt;
+            document.getElementById('chat-container').appendChild(div);
+            document.getElementById('chat-container').scrollTop = 9999;
+            return div;
+        }
+    </script>
+</body>
+</html>
