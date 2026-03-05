@@ -1,4 +1,4 @@
 flask
 gunicorn
-requests
+groq
 pytz
