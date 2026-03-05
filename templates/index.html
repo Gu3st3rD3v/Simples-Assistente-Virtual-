@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assistente IA</title>
+    <title>Geometry AI</title>
     <style>
-        /* Tudo aqui é o visual (CSS) */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #121212; display: flex; justify-content: center; align-items: center; height: 100vh; color: #fff; }
         .chat-wrapper { width: 100%; max-width: 500px; height: 85vh; background: #1e1e1e; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -29,11 +28,63 @@
     <div class="chat-wrapper">
         <header>
             <div class="status-online"></div>
-            <h1>Assistente IA</h1>
+            <h1>Geometry AI</h1>
         </header>
 
         <div id="chat-container">
-            <div class="message bot">Olá! Eu sou sua assistente virtual. Me pergunte qualquer coisa!</div>
+            <div class="message bot">Olá! Eu sou sua AI. Fui fundada por Guester_DEV, com o intuito educacional. Posso responder qualquer uma pergunta.</div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Digite sua pergunta aqui...">
+            <button id="send-btn">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        async function enviarMensagem() {
+            const texto = userInput.value.trim();
+            if (!texto) return;
+
+            adicionarMensagem(texto, 'user');
+            userInput.value = '';
+
+            const botMsgDiv = adicionarMensagem("Pensando...", 'bot');
+
+            try {
+                const response = await fetch('/perguntar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pergunta: texto })
+                });
+
+                const data = await response.json();
+                botMsgDiv.innerText = data.resposta;
+            } catch (error) {
+                botMsgDiv.innerText = "Deu erro de conexão com o cérebro da IA.";
+            }
+        }
+
+        function adicionarMensagem(texto, tipo) {
+            const div = document.createElement('div');
+            div.classList.add('message', tipo);
+            div.innerText = texto;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return div;
+        }
+
+        sendBtn.addEventListener('click', enviarMensagem);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') enviarMensagem();
+        });
+    </script>
+</body>
+</html>
         </div>
 
         <div class="input-area">
