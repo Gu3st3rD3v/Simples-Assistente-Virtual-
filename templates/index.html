@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geometry AI</title>
+    <title>Assistente IA</title>
     <style>
         /* Tudo aqui é o visual (CSS) */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -34,6 +34,64 @@
 
         <div id="chat-container">
             <div class="message bot">Olá! Eu sou sua assistente virtual. Me pergunte qualquer coisa!</div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Digite sua pergunta aqui...">
+            <button id="send-btn">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        // Tudo aqui é a lógica de enviar/receber (JavaScript)
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        async function enviarMensagem() {
+            const texto = userInput.value.trim();
+            if (!texto) return;
+
+            // Coloca a mensagem do usuário na tela
+            adicionarMensagem(texto, 'user');
+            userInput.value = '';
+
+            // Cria o balão de "Pensando..."
+            const botMsgDiv = adicionarMensagem("Pensando...", 'bot');
+
+            try {
+                // Envia para o Flask
+                const response = await fetch('/perguntar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pergunta: texto })
+                });
+
+                const data = await response.json();
+                
+                // Troca o "Pensando..." pela resposta da IA
+                botMsgDiv.innerText = data.resposta;
+            } catch (error) {
+                botMsgDiv.innerText = "Deu erro de conexão com o cérebro da IA.";
+            }
+        }
+
+        function adicionarMensagem(texto, tipo) {
+            const div = document.createElement('div');
+            div.classList.add('message', tipo);
+            div.innerText = texto;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return div;
+        }
+
+        sendBtn.addEventListener('click', enviarMensagem);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') enviarMensagem();
+        });
+    </script>
+</body>
+</html>
         </div>
 
         <div class="input-area">
