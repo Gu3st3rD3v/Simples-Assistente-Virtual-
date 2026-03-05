@@ -10,7 +10,7 @@ timezone = pytz.timezone('America/Sao_Paulo')
 
 # --- CONFIGURAÇÃO ---
 # Coloque sua Key entre as aspas abaixo
-client = Groq(api_key="SUA_CHAVE_AQUI")
+client = Groq(api_key="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")
 
 COMANDOS_FIXOS = {
     "quem é você": "Eu sou a Geometry AI, sua assistente focada em tecnologia.",
