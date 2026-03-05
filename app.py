@@ -18,22 +18,25 @@ def perguntar():
         if not pergunta:
             return jsonify({"resposta": "Por favor, digite sua dúvida."})
 
-        # --- MOTOR GEOMETRY AI DEFINITIVO (SEM CHAVE E ANTI-BLOQUEIO) ---
-        try:
-            # Instrução mestre para ela ser programadora e falar em PT-BR
-            prompt_sistema = f"Você é a Geometry AI, uma inteligência artificial programadora. Responda sempre em Português do Brasil. Pergunta: {pergunta}"
-            
-            # Prepara o texto para virar um link válido
-            texto_formatado = urllib.parse.quote(prompt_sistema)
-            url = f"https://text.pollinations.ai/prompt/{texto_formatado}"
-            
-            # Faz a pergunta para a IA
-            resposta = requests.get(url, timeout=30)
-            
-            if resposta.status_code == 200:
-                resposta_final = resposta.text
-                return jsonify({"resposta": resposta_final})
-            else:
+        prompt_sistema = f"Você é a Geometry AI, uma inteligência artificial programadora. Responda sempre em Português do Brasil. Pergunta: {pergunta}"
+        
+        texto_formatado = urllib.parse.quote(prompt_sistema)
+        url = f"https://text.pollinations.ai/prompt/{texto_formatado}"
+        
+        resposta = requests.get(url, timeout=30)
+        
+        if resposta.status_code == 200:
+            return jsonify({"resposta": resposta.text})
+        else:
+            return jsonify({"resposta": "Ocorreu um congestionamento na rede. Tente de novo!"})
+
+    except Exception as e:
+        print(f"Erro: {e}")
+        return jsonify({"resposta": "Minha conexão falhou ou ocorreu um erro interno."})
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
                 return jsonify({"resposta": "Ocorreu um congestionamento na rede. Tente de novo!"})
 
         except Exception as e:
