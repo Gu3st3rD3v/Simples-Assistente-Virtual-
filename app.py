@@ -1,12 +1,11 @@
 import os
+import urllib.request
+import urllib.parse
+import json
 from flask import Flask, render_template, request, jsonify
-import google.generativeai as genai
+from duckduckgo_search import DDGS
 
 app = Flask(__name__)
-
-# Coloque sua API Key aqui dentro das aspas
-genai.configure(api_key="SUA_CHAVE_AQUI")
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 @app.route('/')
 def home():
@@ -16,24 +15,39 @@ def home():
 def perguntar():
     try:
         dados = request.json
-        pergunta = dados.get("pergunta", "")
+        pergunta = dados.get("pergunta", "").strip()
         
         if not pergunta:
-            return jsonify({"resposta": "Você enviou uma mensagem vazia."})
+            return jsonify({"resposta": "Digite algo!"})
 
-        resposta_ia = model.generate_content(pergunta)
-        return jsonify({"resposta": resposta_ia.text})
+        # 1. TENTA DUCKDUCKGO (Busca Geral)
+        try:
+            with DDGS() as ddgs:
+                resultados = [r for r in ddgs.text(pergunta, region='br-pt', max_results=1)]
+                if resultados:
+                    resumo = resultados[0]['body']
+                    link = resultados[0]['href']
+                    return jsonify({"resposta": f"{resumo}\n\nFonte: {link}"})
+        except:
+            pass # Se o DDG falhar/bloquear, ele vai para o Wikipedia abaixo
+
+        # 2. TENTA WIKIPEDIA (Definições)
+        try:
+            termo = urllib.parse.quote(pergunta)
+            url = f"https://pt.wikipedia.org/api/rest_v1/page/summary/{termo}"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            res = urllib.request.urlopen(req).read()
+            dados_wiki = json.loads(res)
+            return jsonify({"resposta": dados_wiki["extract"]})
+        except:
+            return jsonify({"resposta": "Não encontrei nada sobre isso no momento."})
+
     except Exception as e:
-        return jsonify({"resposta": f"Erro na IA: {str(e)}"})
+        return jsonify({"resposta": "Erro interno no servidor."})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-            
-            if not resultados:
-                return jsonify({"resposta": "Não encontrei nada sobre isso. Tente perguntar de outro jeito."})
-                
-            # Pega o título exato do melhor resultado que o buscador achou
             melhor_titulo = resultados[0]["title"]
             titulo_seguro = urllib.parse.quote(melhor_titulo)
             
