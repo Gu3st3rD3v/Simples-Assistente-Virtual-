@@ -1,12 +1,11 @@
 import os
 from flask import Flask, render_template, request, jsonify
-import google.generativeai as genai
+import wikipedia
+
+# Configura o Wikipedia para pesquisar em português
+wikipedia.set_lang("pt")
 
 app = Flask(__name__)
-
-# Coloque sua API Key aqui dentro das aspas
-genai.configure(api_key="SUA_CHAVE_AQUI")
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 @app.route('/')
 def home():
@@ -14,17 +13,28 @@ def home():
 
 @app.route('/perguntar', methods=['POST'])
 def perguntar():
-    try:
-        dados = request.json
-        pergunta = dados.get("pergunta", "")
-        
-        if not pergunta:
-            return jsonify({"resposta": "Você enviou uma mensagem vazia."})
+    dados = request.json
+    pergunta = dados.get("pergunta", "")
+    
+    if not pergunta:
+         return jsonify({"resposta": "Você não perguntou nada."})
 
-        resposta_ia = model.generate_content(pergunta)
-        return jsonify({"resposta": resposta_ia.text})
+    # Respostas básicas (já que ela não é uma IA de conversa)
+    pergunta_min = pergunta.lower()
+    if "oi" in pergunta_min or "olá" in pergunta_min:
+        return jsonify({"resposta": "Olá! Eu sou a Geometry AI. O que você quer pesquisar?"})
+
+    try:
+        # A mágica acontece aqui: pesquisa no Wikipedia e pega as 2 primeiras frases
+        resposta_pesquisa = wikipedia.summary(pergunta, sentences=2)
+        return jsonify({"resposta": resposta_pesquisa})
+        
+    except wikipedia.exceptions.DisambiguationError as e:
+        return jsonify({"resposta": "Pode ser mais específico? Existem várias coisas com esse nome."})
+    except wikipedia.exceptions.PageError:
+        return jsonify({"resposta": "Desculpe, não encontrei nada sobre isso na minha base de dados."})
     except Exception as e:
-        return jsonify({"resposta": f"Erro na IA: {str(e)}"})
+        return jsonify({"resposta": "Deu um erro na pesquisa."})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
