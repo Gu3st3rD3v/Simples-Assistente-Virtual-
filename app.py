@@ -21,9 +21,8 @@ def perguntar():
         if pergunta_min in ["oi", "olá", "ola", "bom dia", "boa noite"]:
             return jsonify({"resposta": "Olá! Eu sou a Geometry AI. O que você gostaria de pesquisar na internet hoje?"})
 
-        # --- SISTEMA DE PESQUISA AVANÇADO ---
+        # Sistema de pesquisa inteligente na internet
         try:
-            # Pesquisa a frase inteira no motor de busca e pega o primeiro resultado
             resultados = DDGS().text(pergunta, region='br-pt', max_results=1)
             
             if resultados:
@@ -34,6 +33,16 @@ def perguntar():
                 return jsonify({"resposta": resposta_formatada})
             else:
                 return jsonify({"resposta": "Não encontrei uma resposta clara para isso na internet."})
+                
+        except Exception as e:
+            return jsonify({"resposta": "Desculpe, o servidor de buscas falhou. Tente novamente."})
+            
+    except Exception as e:
+        return jsonify({"resposta": "Ops, tive um problema técnico interno."})
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
                 
         except Exception as e:
             return jsonify({"resposta": "Desculpe, o servidor de buscas está muito ocupado no momento. Tente novamente."})
