@@ -2,23 +2,52 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Geometry AI</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #121212; display: flex; justify-content: center; align-items: center; height: 100vh; color: #fff; }
-        .chat-wrapper { width: 100%; max-width: 500px; height: 85vh; background: #1e1e1e; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        header { background: #2d2d2d; padding: 20px; display: flex; align-items: center; border-bottom: 1px solid #333; }
+        
+        body { 
+            background-color: #121212; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            width: 100vw;
+            color: #fff; 
+            overflow: hidden; /* Impede a tela de rolar para os lados */
+        }
+
+        .chat-wrapper { 
+            width: 100%; 
+            max-width: 600px; 
+            height: 100%; /* No celular, ocupa a tela toda */
+            background: #1e1e1e; 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.8); 
+        }
+
+        /* Se for aberto no PC, ele ganha bordas arredondadas e fica como um App */
+        @media (min-width: 600px) {
+            .chat-wrapper { height: 90vh; border-radius: 15px; }
+        }
+
+        header { background: #2d2d2d; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #333; }
         .status-online { width: 12px; height: 12px; background: #00ff88; border-radius: 50%; margin-right: 15px; box-shadow: 0 0 10px #00ff88; }
         header h1 { font-size: 1.2rem; margin: 0; }
+        
         #chat-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 0.95rem; word-wrap: break-word; }
+        
+        .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.4; font-size: 1rem; word-wrap: break-word; }
         .user { background: #007bff; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
         .bot { background: #333; color: #e0e0e0; align-self: flex-start; border-bottom-left-radius: 2px; }
-        .input-area { padding: 15px; background: #2d2d2d; display: flex; gap: 10px; border-top: 1px solid #333; }
+        
+        .input-area { padding: 10px; background: #2d2d2d; display: flex; gap: 10px; border-top: 1px solid #333; }
         input { flex: 1; background: #3d3d3d; border: none; padding: 15px; border-radius: 8px; color: white; outline: none; font-size: 1rem; }
-        button { background: #007bff; color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        button { background: #007bff; color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: bold; font-size: 1rem;}
         button:hover { background: #0056b3; }
+        
         #chat-container::-webkit-scrollbar { width: 6px; }
         #chat-container::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; }
     </style>
@@ -34,6 +63,57 @@
         <div id="chat-container">
             <div class="message bot">Olá! Eu sou sua AI. Fui fundada por Guester_DEV, com o intuito educacional. Posso responder qualquer uma pergunta.</div>
         </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Digite sua pergunta...">
+            <button id="send-btn">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        async function enviarMensagem() {
+            const texto = userInput.value.trim();
+            if (!texto) return;
+
+            adicionarMensagem(texto, 'user');
+            userInput.value = '';
+
+            const botMsgDiv = adicionarMensagem("Pensando...", 'bot');
+
+            try {
+                const response = await fetch('/perguntar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pergunta: texto })
+                });
+
+                const data = await response.json();
+                botMsgDiv.innerText = data.resposta;
+            } catch (error) {
+                botMsgDiv.innerText = "Ops, não consegui me conectar ao servidor.";
+            }
+        }
+
+        function adicionarMensagem(texto, tipo) {
+            const div = document.createElement('div');
+            div.classList.add('message', tipo);
+            div.innerText = texto;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return div;
+        }
+
+        sendBtn.addEventListener('click', enviarMensagem);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') enviarMensagem();
+        });
+    </script>
+</body>
+</html>
 
         <div class="input-area">
             <input type="text" id="user-input" placeholder="Digite sua pergunta aqui...">
