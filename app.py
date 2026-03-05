@@ -9,8 +9,9 @@ app.secret_key = os.urandom(24)
 timezone = pytz.timezone('America/Sao_Paulo')
 
 # --- CONFIGURAÇÃO DA INTELIGÊNCIA ---
-# COLE SUA CHAVE DA GROQ AQUI (Começa com gsk_)
-client = Groq(api_key="SUA_CHAVE_GROQ_AQUI")
+# Agora a chave é puxada automaticamente do Environment do Render
+api_key = os.environ.get('API')
+client = Groq(api_key=api_key)
 
 PERGUNTAS_AKINATOR = {
     1: "O seu personagem é um ser humano real?",
@@ -75,7 +76,6 @@ def perguntar():
             return jsonify({"resposta": COMANDOS_FIXOS[msg]})
 
         # 4. CÉREBRO LLAMA 3 (VIA GROQ)
-        # Se nada acima for ativado, a IA responde livremente
         chat_completion = client.chat.completions.create(
             messages=[
                 {
@@ -87,15 +87,15 @@ def perguntar():
                     "content": pergunta_original,
                 }
             ],
-            model="llama3-8b-8192", # Modelo super rápido e inteligente
+            model="llama3-8b-8192",
         )
         
         return jsonify({"resposta": chat_completion.choices[0].message.content})
 
     except Exception as e:
         print(f"Erro: {e}")
-        return jsonify({"resposta": "Tive um problema ao acessar meu cérebro. Verifique a API Key!"})
+        return jsonify({"resposta": "Erro de conexão com a IA. Verifique se a chave 'API' está configurada no Render."})
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
-                                                    
+            
