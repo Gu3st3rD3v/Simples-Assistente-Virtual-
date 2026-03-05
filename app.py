@@ -1,6 +1,6 @@
 import os
 from flask import Flask, render_template, request, jsonify
-from duckduckgo_search import DDGS
+from g4f.client import Client
 
 app = Flask(__name__)
 
@@ -15,31 +15,28 @@ def perguntar():
         pergunta = dados.get("pergunta", "").strip()
         
         if not pergunta:
-            return jsonify({"resposta": "Por favor, digite sua pergunta ou código."})
+            return jsonify({"resposta": "Por favor, digite sua dúvida."})
 
-        # --- MOTOR DE INTELIGÊNCIA GEOMETRY AI (SEM CHAVE) ---
+        # --- MOTOR GEOMETRY AI G4F (SEM CHAVE) ---
+        client = Client()
         try:
-            with DDGS() as ddgs:
-                # O comando .chat() acessa a IA de verdade que sabe programar!
-                # Usamos o modelo 'gpt-4o-mini' que é excelente para scripts.
-                resposta_ia = ddgs.chat(pergunta, model='gpt-4o-mini')
-                
-                if resposta_ia:
-                    return jsonify({"resposta": resposta_ia})
-        except Exception as e:
-            print(f"Erro no modo Chat: {e}")
+            # Forçamos a instrução para ela sempre falar em Português e ser programadora
+            prompt_sistema = f"Você é a Geometry AI, uma inteligência artificial programadora. Responda sempre em Português do Brasil. Pergunta: {pergunta}"
             
-        # Fallback: Se o modo chat falhar, ele tenta a busca normal
-        try:
-            with DDGS() as ddgs:
-                res = list(ddgs.text(pergunta, region='br-pt', max_results=1))
-                if res:
-                    return jsonify({"resposta": res[0]['body']})
-        except:
-            return jsonify({"resposta": "No momento não consegui processar sua solicitação."})
+            response = client.chat.completions.create(
+                model="gpt-4o", # Ela vai tentar usar o motor do GPT-4
+                messages=[{"role": "user", "content": prompt_sistema}],
+            )
+            
+            resposta_final = response.choices[0].message.content
+            return jsonify({"resposta": resposta_final})
+
+        except Exception as e:
+            print(f"Erro no motor principal: {e}")
+            return jsonify({"resposta": "Tive um problema no meu núcleo de processamento. Tente novamente em instantes."})
 
     except Exception:
-        return jsonify({"resposta": "Erro interno no servidor da Geometry AI."})
+        return jsonify({"resposta": "Erro de conexão com o servidor."})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
