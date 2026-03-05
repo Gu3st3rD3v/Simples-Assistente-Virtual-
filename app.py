@@ -15,34 +15,31 @@ def perguntar():
         pergunta = dados.get("pergunta", "").strip()
         
         if not pergunta:
-            return jsonify({"resposta": "Por favor, digite algo."})
+            return jsonify({"resposta": "Por favor, digite sua pergunta ou código."})
 
-        # Sistema de pesquisa DuckDuckGo
+        # --- MOTOR DE INTELIGÊNCIA GEOMETRY AI (SEM CHAVE) ---
         try:
             with DDGS() as ddgs:
-                # Busca o resultado mais relevante
-                resultados = list(ddgs.text(pergunta, region='br-pt', max_results=1))
-                if resultados:
-                    resumo = resultados[0]['body']
-                    link = resultados[0]['href']
-                    return jsonify({"resposta": f"{resumo}\n\nFonte: {link}"})
-        except Exception:
-            pass
-
-        # Se o buscador falhar, tenta o Wikipedia como segunda opção
+                # O comando .chat() acessa a IA de verdade que sabe programar!
+                # Usamos o modelo 'gpt-4o-mini' que é excelente para scripts.
+                resposta_ia = ddgs.chat(pergunta, model='gpt-4o-mini')
+                
+                if resposta_ia:
+                    return jsonify({"resposta": resposta_ia})
+        except Exception as e:
+            print(f"Erro no modo Chat: {e}")
+            
+        # Fallback: Se o modo chat falhar, ele tenta a busca normal
         try:
-            import urllib.request, json, urllib.parse
-            termo = urllib.parse.quote(pergunta)
-            url = f"https://pt.wikipedia.org/api/rest_v1/page/summary/{termo}"
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req) as response:
-                data = json.loads(response.read())
-                return jsonify({"resposta": data.get("extract", "Não encontrei informações exatas.")})
-        except Exception:
-            return jsonify({"resposta": "Desculpe, não consegui encontrar uma resposta agora."})
+            with DDGS() as ddgs:
+                res = list(ddgs.text(pergunta, region='br-pt', max_results=1))
+                if res:
+                    return jsonify({"resposta": res[0]['body']})
+        except:
+            return jsonify({"resposta": "No momento não consegui processar sua solicitação."})
 
-    except Exception as e:
-        return jsonify({"resposta": "Erro interno no servidor."})
+    except Exception:
+        return jsonify({"resposta": "Erro interno no servidor da Geometry AI."})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
