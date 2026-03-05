@@ -1,6 +1,7 @@
 import os
+import requests
+import urllib.parse
 from flask import Flask, render_template, request, jsonify
-from g4f.client import Client
 
 app = Flask(__name__)
 
@@ -17,23 +18,34 @@ def perguntar():
         if not pergunta:
             return jsonify({"resposta": "Por favor, digite sua dúvida."})
 
-        # --- MOTOR GEOMETRY AI G4F (SEM CHAVE) ---
-        client = Client()
+        # --- MOTOR GEOMETRY AI DEFINITIVO (SEM CHAVE E ANTI-BLOQUEIO) ---
         try:
-            # Forçamos a instrução para ela sempre falar em Português e ser programadora
+            # Instrução mestre para ela ser programadora e falar em PT-BR
             prompt_sistema = f"Você é a Geometry AI, uma inteligência artificial programadora. Responda sempre em Português do Brasil. Pergunta: {pergunta}"
             
-            response = client.chat.completions.create(
-                model="gpt-4o", # Ela vai tentar usar o motor do GPT-4
-                messages=[{"role": "user", "content": prompt_sistema}],
-            )
+            # Prepara o texto para virar um link válido
+            texto_formatado = urllib.parse.quote(prompt_sistema)
+            url = f"https://text.pollinations.ai/prompt/{texto_formatado}"
             
-            resposta_final = response.choices[0].message.content
-            return jsonify({"resposta": resposta_final})
+            # Faz a pergunta para a IA
+            resposta = requests.get(url, timeout=30)
+            
+            if resposta.status_code == 200:
+                resposta_final = resposta.text
+                return jsonify({"resposta": resposta_final})
+            else:
+                return jsonify({"resposta": "Ocorreu um congestionamento na rede. Tente de novo!"})
 
         except Exception as e:
-            print(f"Erro no motor principal: {e}")
-            return jsonify({"resposta": "Tive um problema no meu núcleo de processamento. Tente novamente em instantes."})
+            print(f"Erro de conexão com o motor: {e}")
+            return jsonify({"resposta": "Minha conexão falhou. Pode repetir a pergunta?"})
+
+    except Exception:
+        return jsonify({"resposta": "Erro interno no servidor da Geometry AI."})
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
 
     except Exception:
         return jsonify({"resposta": "Erro de conexão com o servidor."})
