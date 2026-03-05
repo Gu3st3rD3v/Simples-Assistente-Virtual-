@@ -5,10 +5,17 @@ from datetime import datetime
 import pytz
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) # Necessário para a memória do Akinator
-
-# Configuração de fuso horário
+app.secret_key = os.urandom(24)
 timezone = pytz.timezone('America/Sao_Paulo')
+
+# --- BANCO DE DADOS DO AKINATOR ---
+PERGUNTAS_AKINATOR = {
+    1: "O seu personagem é um ser humano real?",
+    2: "Ele é um super-herói?",
+    3: "Ele é brasileiro?",
+    4: "Ele é de um anime?",
+    5: "Ele usa uma armadura?"
+}
 
 @app.route('/')
 def home():
@@ -19,48 +26,96 @@ def home():
 def perguntar():
     try:
         dados = request.json
-        pergunta = dados.get("pergunta", "").strip().lower()
+        pergunta_original = dados.get("pergunta", "").strip()
+        pergunta = pergunta_original.lower()
         
-        # --- LÓGICA DO AKINATOR (MEMÓRIA) ---
+        # --- LÓGICA AKINATOR ---
         if "akinator" in pergunta:
             session['jogo'] = 'akinator'
             session['passo'] = 1
-            return jsonify({"resposta": "🔮 O gênio Akinator foi invocado! Pense em um personagem. Quando estiver pronto, diga 'ESTOU PRONTO'."})
-        
+            return jsonify({"resposta": "🔮 Akinator invocado! Pense em um personagem famoso. Quando estiver pronto, diga 'ESTOU PRONTO'."})
+
         if session.get('jogo') == 'akinator':
-            if "pronto" in pergunta and session.get('passo') == 1:
+            passo = session.get('passo')
+            if "pronto" in pergunta and passo == 1:
                 session['passo'] = 2
-                return jsonify({"resposta": "Primeira pergunta: O seu personagem é homem?"})
-            elif session.get('passo') == 2:
-                session['passo'] = 3
-                return jsonify({"resposta": "Ele é um personagem de desenhos animados ou anime?"})
-            # (Aqui você pode expandir a árvore de perguntas futuramente)
+                return jsonify({"resposta": PERGUNTAS_AKINATOR[1]})
+            if passo >= 2:
+                session[f'resp_{passo}'] = "sim" in pergunta
+                proximo = passo + 1
+                if proximo in PERGUNTAS_AKINATOR:
+                    session['passo'] = proximo
+                    return jsonify({"resposta": PERGUNTAS_AKINATOR[proximo]})
+                else:
+                    r1, r2 = session.get('resp_2'), session.get('resp_3')
+                    session.clear()
+                    if r1 and not r2: return jsonify({"resposta": "Aposto que você pensou no Neymar Jr!"})
+                    if not r1 and r2: return jsonify({"resposta": "Você pensou no Homem de Ferro!"})
+                    return jsonify({"resposta": "Dedução final: Você pensou em alguém incrível! Digite 'Akinator' para jogar de novo."})
 
-        # --- COMANDOS DE UTILIDADE ---
+        # --- DATA E HORA ---
         agora = datetime.now(timezone)
-        
-        if "que horas são" in pergunta or "hora atual" in pergunta:
-            return jsonify({"resposta": f"Agora são exatamente {agora.strftime('%H:%M')}."})
-            
-        if "que dia é hoje" in pergunta or "data de hoje" in pergunta:
-            meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
-            return jsonify({"resposta": f"Hoje é dia {agora.day} de {meses[agora.month-1]} de {agora.year}."})
+        if "que horas são" in pergunta: return jsonify({"resposta": f"Agora são {agora.strftime('%H:%M')}."})
+        if "que dia é hoje" in pergunta: return jsonify({"resposta": f"Hoje é {agora.strftime('%d/%m/%Y')}."})
+        if "quem é você" in pergunta: return jsonify({"resposta": "Eu sou a Geometry AI, sua assistente virtual focada em educação e programação."})
 
-        if "clima em" in pergunta or "previsão do tempo" in pergunta:
+        # --- DICIONÁRIO DE COMANDOS ---
+        comandos = {
+            "bom dia": "Bom dia! Pronto para os desafios de hoje?",
+            "boa tarde": "Boa tarde! Como está seu progresso hoje?",
+            "boa noite": "Boa noite! Não esqueça de descansar os olhos.",
+            "quem te criou": "Fui criada pelo desenvolvedor Guester_DEV.",
+            "o que é python": "Uma linguagem de programação poderosa e fácil de aprender.",
+            "o que é java": "Uma linguagem robusta usada em grandes sistemas e Android.",
+            "o que é git": "Um sistema de controle de versão para programadores.",
+            "o que é docker": "Uma plataforma que empacota software em containers.",
+            "o que é algoritmo": "Uma sequência de passos para resolver um problema.",
+            "o que é bug": "Um erro inesperado em um software.",
+            "capital da frança": "Paris.", "capital da alemanha": "Berlim.",
+            "capital do japão": "Tóquio.", "capital da itália": "Roma.",
+            "maior país": "Rússia.", "maior rio": "Rio Amazonas.",
+            "o que é átomo": "A menor unidade da matéria comum.",
+            "quem foi einstein": "Físico que criou a teoria da relatividade.",
+            "o que é dna": "Molécula que contém nossas instruções genéticas.",
+            "quem é harry potter": "O bruxo protagonista da obra de J.K. Rowling.",
+            "quem é darth vader": "O icônico vilão da saga Star Wars.",
+            "quem é o homem-aranha": "Peter Parker, o herói da Marvel que escala paredes.",
+            "maior animal do mundo": "Baleia-azul.",
+            "me conte uma piada": "Por que o computador foi ao médico? Porque estava com vírus!",
+            "tchau": "Até logo! Estarei aqui quando precisar.",
+            "obrigado": "Por nada! Fico feliz em ajudar."
+        }
+
+        # --- NOVO COMANDO: LISTA DE COMANDOS (DINÂMICO) ---
+        if "lista de comandos" in pergunta or "o que você faz" in pergunta:
+            # Pega todas as chaves do dicionário e organiza em texto
+            lista_formatada = ", ".join(sorted(comandos.keys()))
+            return jsonify({"resposta": f"📋 **Aqui estão os comandos que eu entendo instantaneamente:**\n\n{lista_formatada}\n\nAlém disso, posso pesquisar qualquer outra coisa na web e jogar **Akinator**!"})
+
+        # Verificação de comandos fixos
+        for chave, valor in comandos.items():
+            if chave in pergunta:
+                return jsonify({"resposta": valor})
+
+        # --- CLIMA ---
+        if "clima em" in pergunta:
             with DDGS() as ddgs:
                 res = list(ddgs.text(f"previsão do tempo hoje em {pergunta}", region='br-pt', max_results=1))
-                return jsonify({"resposta": res[0]['body'] if res else "Não consegui acessar o satélite agora."})
+                return jsonify({"resposta": res[0]['body'] if res else "Erro ao consultar clima."})
 
-        # --- MAIS 30 COMANDOS RÁPIDOS (EXEMPLOS) ---
-        comandos_diretos = {
-            "quem é você": "Eu sou a Geometry AI, sua assistente virtual focada em educação e programação.",
-            "quem te criou": "Fui criada pelo desenvolvedor Guester_DEV.",
-            "qual sua cor favorita": "Eu gosto de verde esmeralda, a cor da tecnologia!",
-            "me conte uma piada": "Por que o computador foi ao médico? Porque estava com um vírus!",
-            "o que é python": "Python é uma linguagem de programação poderosa, legível e muito usada em IA.",
-            "melhor linguagem": "Depende do objetivo, mas Python e JavaScript dominam o mundo!",
-            "está chovendo": "Verifique a previsão do tempo para sua cidade usando 'clima em...'.",
-            "bom dia": "Bom dia! Como posso ajudar em seus códigos hoje?",
+        # --- PESQUISA WEB ---
+        with DDGS() as ddgs:
+            res = list(ddgs.text(pergunta, region='br-pt', max_results=1))
+            if res:
+                return jsonify({"resposta": f"{res[0]['body']}\n\nFonte: DuckDuckGo"})
+
+        return jsonify({"resposta": "Não entendi sua pergunta. Tente 'Lista de comandos'!"})
+
+    except Exception as e:
+        return jsonify({"resposta": f"Erro: {str(e)}"})
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
             "boa tarde": "Boa tarde! Preparado para programar algo novo?",
             "boa noite": "Boa noite! Não esqueça de descansar os olhos da tela.",
             "abrir google": "Você pode acessar em google.com",
