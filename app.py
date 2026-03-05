@@ -4,10 +4,8 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-# --- CONFIGURAÇÃO DA IA ---
-# Substitua pelo código da sua chave ou configure no painel do Render
-GOOGLE_API_KEY = "COLE_AQUI_SUA_CHAVE_DO_AI_STUDIO"
-genai.configure(api_key=GOOGLE_API_KEY)
+# Coloque sua API Key aqui dentro das aspas
+genai.configure(api_key="SUA_CHAVE_AQUI")
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 @app.route('/')
@@ -18,19 +16,16 @@ def home():
 def perguntar():
     try:
         dados = request.json
-        pergunta_usuario = dados.get("pergunta", "")
-
-        if not pergunta_usuario:
-            return jsonify({"resposta": "Diga algo para eu pesquisar!"})
-
-        # A IA pesquisa na base de dados dela (treinada com a internet)
-        response = model.generate_content(pergunta_usuario)
+        pergunta = dados.get("pergunta", "")
         
-        return jsonify({"resposta": response.text})
-    except Exception as e:
-        return jsonify({"resposta": f"Erro ao processar: {str(e)}"})
+        if not pergunta:
+            return jsonify({"resposta": "Você enviou uma mensagem vazia."})
 
-if __name__ == '__main__':
-    # ESSA PARTE É ESSENCIAL PARA O RENDER FUNCIONAR:
+        resposta_ia = model.generate_content(pergunta)
+        return jsonify({"resposta": resposta_ia.text})
+    except Exception as e:
+        return jsonify({"resposta": f"Erro na IA: {str(e)}"})
+
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
