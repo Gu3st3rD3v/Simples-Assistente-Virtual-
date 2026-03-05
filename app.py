@@ -1,10 +1,12 @@
 import os
-import urllib.request
-import urllib.parse
-import json
 from flask import Flask, render_template, request, jsonify
+import google.generativeai as genai
 
 app = Flask(__name__)
+
+# Coloque sua API Key aqui dentro das aspas
+genai.configure(api_key="SUA_CHAVE_AQUI")
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 @app.route('/')
 def home():
@@ -14,26 +16,19 @@ def home():
 def perguntar():
     try:
         dados = request.json
-        pergunta = dados.get("pergunta", "").strip()
+        pergunta = dados.get("pergunta", "")
         
         if not pergunta:
-            return jsonify({"resposta": "Por favor, digite alguma coisa."})
-            
-        pergunta_min = pergunta.lower()
-        if pergunta_min in ["oi", "olá", "ola", "bom dia", "boa noite"]:
-            return jsonify({"resposta": "Olá! Eu sou a Geometry AI. O que você gostaria de pesquisar hoje?"})
+            return jsonify({"resposta": "Você enviou uma mensagem vazia."})
 
-        # --- SISTEMA DE BUSCA INTELIGENTE (SEM CHAVES E SEM BIBLIOTECAS EXTRAS) ---
-        try:
-            # Passo 1: Pesquisa a frase inteira para descobrir o melhor artigo
-            query_segura = urllib.parse.quote(pergunta)
-            url_busca = f"https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch={query_segura}&utf8=&format=json"
-            
-            req_busca = urllib.request.Request(url_busca, headers={'User-Agent': 'Mozilla/5.0'})
-            resposta_busca = urllib.request.urlopen(req_busca).read()
-            dados_busca = json.loads(resposta_busca)
-            
-            resultados = dados_busca.get("query", {}).get("search", [])
+        resposta_ia = model.generate_content(pergunta)
+        return jsonify({"resposta": resposta_ia.text})
+    except Exception as e:
+        return jsonify({"resposta": f"Erro na IA: {str(e)}"})
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
             
             if not resultados:
                 return jsonify({"resposta": "Não encontrei nada sobre isso. Tente perguntar de outro jeito."})
